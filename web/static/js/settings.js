@@ -1025,6 +1025,36 @@ async function loadConfig(loadTools = true, options = {}) {
             }
         }
 
+        const experienceEnabledCb = document.getElementById('experience-enabled');
+        if (experienceEnabledCb) {
+            experienceEnabledCb.checked = currentConfig.experience?.enabled === true;
+        }
+        if (currentConfig.experience) {
+            const exp = currentConfig.experience;
+            const expEmb = exp.embedding || {};
+            const expProv = document.getElementById('experience-embedding-provider');
+            if (expProv) expProv.value = expEmb.provider || 'openai';
+            const expModel = document.getElementById('experience-embedding-model');
+            if (expModel) expModel.value = expEmb.model || '';
+            const expBase = document.getElementById('experience-embedding-base-url');
+            if (expBase) expBase.value = expEmb.base_url || '';
+            const expKey = document.getElementById('experience-embedding-api-key');
+            if (expKey) expKey.value = expEmb.api_key || '';
+            const expTopK = document.getElementById('experience-retrieval-top-k');
+            if (expTopK) expTopK.value = exp.retrieval?.top_k ?? 5;
+            const expThreshold = document.getElementById('experience-retrieval-similarity-threshold');
+            if (expThreshold) expThreshold.value = exp.retrieval?.similarity_threshold ?? 0.65;
+            const expIdx = exp.indexing || {};
+            const expMaxRpm = document.getElementById('experience-indexing-max-rpm');
+            if (expMaxRpm) expMaxRpm.value = expIdx.max_rpm ?? 100;
+            const expRateDelay = document.getElementById('experience-indexing-rate-limit-delay-ms');
+            if (expRateDelay) expRateDelay.value = expIdx.rate_limit_delay_ms ?? 600;
+            const expMaxRetries = document.getElementById('experience-indexing-max-retries');
+            if (expMaxRetries) expMaxRetries.value = expIdx.max_retries ?? 3;
+            const expRetryDelay = document.getElementById('experience-indexing-retry-delay-ms');
+            if (expRetryDelay) expRetryDelay.value = expIdx.retry_delay_ms ?? 1000;
+        }
+
         const c2EnabledCb = document.getElementById('c2-enabled');
         if (c2EnabledCb) {
             c2EnabledCb.checked = currentConfig.c2?.enabled !== false;
@@ -1946,6 +1976,29 @@ async function applySettings() {
                 };
             })()
         };
+
+        const experienceConfig = {
+            enabled: document.getElementById('experience-enabled')?.checked === true,
+            embedding: {
+                provider: document.getElementById('experience-embedding-provider')?.value || 'openai',
+                model: document.getElementById('experience-embedding-model')?.value.trim() || '',
+                base_url: document.getElementById('experience-embedding-base-url')?.value.trim() || '',
+                api_key: document.getElementById('experience-embedding-api-key')?.value.trim() || ''
+            },
+            retrieval: {
+                top_k: parseInt(document.getElementById('experience-retrieval-top-k')?.value, 10) || 5,
+                similarity_threshold: (() => {
+                    const val = parseFloat(document.getElementById('experience-retrieval-similarity-threshold')?.value);
+                    return isNaN(val) ? 0.65 : val;
+                })()
+            },
+            indexing: {
+                max_rpm: parseInt(document.getElementById('experience-indexing-max-rpm')?.value, 10) ?? 100,
+                rate_limit_delay_ms: parseInt(document.getElementById('experience-indexing-rate-limit-delay-ms')?.value, 10) ?? 600,
+                max_retries: parseInt(document.getElementById('experience-indexing-max-retries')?.value, 10) ?? 3,
+                retry_delay_ms: parseInt(document.getElementById('experience-indexing-retry-delay-ms')?.value, 10) ?? 1000
+            }
+        };
         
         const wecomAgentIdVal = document.getElementById('robot-wecom-agent-id')?.value.trim();
         if (!currentConfig) currentConfig = {};
@@ -2045,6 +2098,7 @@ async function applySettings() {
                 };
             })(),
             knowledge: knowledgeConfig,
+            experience: experienceConfig,
             c2: {
                 enabled: c2Enabled
             },

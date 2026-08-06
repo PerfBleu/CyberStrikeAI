@@ -245,6 +245,42 @@ func (s *Service) Search(ctx context.Context, req *SearchRequest) ([]*SearchResu
 	return out, nil
 }
 
+// Reindex 重建单条经验的向量索引。
+func (s *Service) Reindex(ctx context.Context, id string) error {
+	exp, err := s.db.GetOperationalExperience(id)
+	if err != nil {
+		return err
+	}
+	return s.reindexExperience(ctx, exp)
+}
+
+// ReindexAll 重建全部经验向量（best-effort，跳过失败项）。
+func (s *Service) ReindexAll(ctx context.Context) (indexed, failed int, err error) {
+	list, err := s.db.ListOperationalExperiences(10000, 0, database.ExperienceListFilter{})
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, exp := range list {
+		if exp == nil {
+			continue
+		}
+		if rerr := s.reindexExperience(ctx, exp); rerr != nil {
+			failed++
+			if s.logger != nil {
+				s.logger.Warn("经验 reindex 失败", zap.String("id", exp.ID), zap.Error(rerr))
+			}
+		} else {
+			indexed++
+		}
+	}
+	return indexed, failed, nil
+}
+
+// Delete 删除经验。
+func (s *Service) Delete(id string) error {
+	return s.db.DeleteOperationalExperience(id)
+}
+
 func cosineSimilarity(a, b []float32) float64 {
 	if len(a) != len(b) {
 		return 0

@@ -382,6 +382,7 @@ const PAGE_PERMISSION_MAP = {
     knowledge: 'knowledge:read',
     'knowledge-retrieval-logs': 'knowledge:read',
     'knowledge-management': 'knowledge:read',
+    'experience-management': 'experience:read',
     skills: 'skills:read',
     'skills-monitor': 'skills:read',
     'skills-management': 'skills:read',

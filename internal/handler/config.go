@@ -270,6 +270,7 @@ type GetConfigResponse struct {
 	Agent      config.AgentConfig       `json:"agent"`
 	Hitl       config.HitlConfig        `json:"hitl,omitempty"`
 	Knowledge  config.KnowledgeConfig   `json:"knowledge"`
+	Experience config.ExperienceConfig  `json:"experience"`
 	Robots     config.RobotsConfig      `json:"robots,omitempty"`
 	MultiAgent config.MultiAgentPublic  `json:"multi_agent,omitempty"`
 	C2         config.C2Public          `json:"c2"`
@@ -376,6 +377,7 @@ func (h *ConfigHandler) GetConfig(c *gin.Context) {
 		Agent:      h.config.Agent,
 		Hitl:       h.config.Hitl,
 		Knowledge:  h.config.Knowledge,
+		Experience: h.config.Experience,
 		C2:         h.config.C2.Public(),
 		Robots:     h.config.Robots,
 		MultiAgent: multiPub,
@@ -720,6 +722,7 @@ type UpdateConfigRequest struct {
 	Agent      *AgentConfigUpdate          `json:"agent,omitempty"`
 	Hitl       *config.HitlConfig          `json:"hitl,omitempty"`
 	Knowledge  *config.KnowledgeConfig     `json:"knowledge,omitempty"`
+	Experience *config.ExperienceConfig    `json:"experience,omitempty"`
 	Robots     *config.RobotsConfig        `json:"robots,omitempty"`
 	MultiAgent *config.MultiAgentAPIUpdate `json:"multi_agent,omitempty"`
 	C2         *config.C2APIUpdate         `json:"c2,omitempty"`
@@ -919,6 +922,16 @@ func (h *ConfigHandler) UpdateConfig(c *gin.Context) {
 			zap.String("embedding_model", h.config.Knowledge.Embedding.Model),
 			zap.Int("retrieval_top_k", h.config.Knowledge.Retrieval.TopK),
 			zap.Float64("similarity_threshold", h.config.Knowledge.Retrieval.SimilarityThreshold),
+		)
+	}
+
+	if req.Experience != nil {
+		h.config.Experience = *req.Experience
+		h.logger.Info("更新Experience配置",
+			zap.Bool("enabled", h.config.Experience.Enabled),
+			zap.String("embedding_model", h.config.Experience.Embedding.Model),
+			zap.Int("retrieval_top_k", h.config.Experience.Retrieval.TopKEffective()),
+			zap.Float64("similarity_threshold", h.config.Experience.Retrieval.SimilarityThresholdEffective()),
 		)
 	}
 
@@ -1706,6 +1719,7 @@ func (h *ConfigHandler) saveConfig() error {
 	updateSpaceSearchConfig(root, "quake", h.config.Quake)
 	updateSpaceSearchConfig(root, "shodan", h.config.Shodan)
 	updateKnowledgeConfig(root, h.config.Knowledge)
+	updateExperienceConfig(root, h.config.Experience)
 	updateC2Config(root, h.config.C2)
 	updateRobotsConfig(root, h.config.Robots)
 	updateHitlConfig(root, h.config.Hitl)
@@ -2015,6 +2029,32 @@ func updateKnowledgeConfig(doc *yaml.Node, cfg config.KnowledgeConfig) {
 	setBoolInMap(indexingNode, "prefer_source_file", cfg.Indexing.PreferSourceFile)
 	setIntInMap(indexingNode, "batch_size", cfg.Indexing.BatchSize)
 	setStringSliceInMap(indexingNode, "sub_indexes", cfg.Indexing.SubIndexes)
+	setIntInMap(indexingNode, "max_rpm", cfg.Indexing.MaxRPM)
+	setIntInMap(indexingNode, "rate_limit_delay_ms", cfg.Indexing.RateLimitDelayMs)
+	setIntInMap(indexingNode, "max_retries", cfg.Indexing.MaxRetries)
+	setIntInMap(indexingNode, "retry_delay_ms", cfg.Indexing.RetryDelayMs)
+}
+
+func updateExperienceConfig(doc *yaml.Node, cfg config.ExperienceConfig) {
+	root := doc.Content[0]
+	node := ensureMap(root, "experience")
+	setBoolInMap(node, "enabled", cfg.Enabled)
+
+	embeddingNode := ensureMap(node, "embedding")
+	setStringInMap(embeddingNode, "provider", cfg.Embedding.Provider)
+	setStringInMap(embeddingNode, "model", cfg.Embedding.Model)
+	if cfg.Embedding.BaseURL != "" {
+		setStringInMap(embeddingNode, "base_url", cfg.Embedding.BaseURL)
+	}
+	if cfg.Embedding.APIKey != "" {
+		setStringInMap(embeddingNode, "api_key", cfg.Embedding.APIKey)
+	}
+
+	retrievalNode := ensureMap(node, "retrieval")
+	setIntInMap(retrievalNode, "top_k", cfg.Retrieval.TopKEffective())
+	setFloatInMap(retrievalNode, "similarity_threshold", cfg.Retrieval.SimilarityThresholdEffective())
+
+	indexingNode := ensureMap(node, "indexing")
 	setIntInMap(indexingNode, "max_rpm", cfg.Indexing.MaxRPM)
 	setIntInMap(indexingNode, "rate_limit_delay_ms", cfg.Indexing.RateLimitDelayMs)
 	setIntInMap(indexingNode, "max_retries", cfg.Indexing.MaxRetries)

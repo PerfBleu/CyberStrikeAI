@@ -276,3 +276,67 @@ func (db *DB) ListExperienceEmbeddingsForSearch(filter ExperienceListFilter) ([]
 	}
 	return embeds, rows.Err()
 }
+
+// DeleteOperationalExperience 删除经验条目（向量由外键 CASCADE 删除）。
+func (db *DB) DeleteOperationalExperience(id string) error {
+	res, err := db.Exec(`DELETE FROM operational_experiences WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("删除经验条目失败: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return fmt.Errorf("经验条目不存在")
+	}
+	return nil
+}
+
+// CountOperationalExperiences 统计经验条数。
+func (db *DB) CountOperationalExperiences(filter ExperienceListFilter) (int, error) {
+	query := `SELECT COUNT(*) FROM operational_experiences WHERE 1=1`
+	args := []interface{}{}
+	query, args = filter.appendWhere(query, args)
+	var n int
+	if err := db.QueryRow(query, args...).Scan(&n); err != nil {
+		return 0, fmt.Errorf("统计经验失败: %w", err)
+	}
+	return n, nil
+}
+
+// CountExperienceEmbeddings 统计已索引向量块数量。
+func (db *DB) CountExperienceEmbeddings() (int, error) {
+	var n int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM experience_embeddings`).Scan(&n); err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+// ExperienceStats 经验库统计。
+type ExperienceStats struct {
+	Total      int            `json:"total"`
+	Indexed    int            `json:"indexed"`
+	ByConfidence map[string]int `json:"by_confidence"`
+}
+
+// GetExperienceStats 聚合经验统计。
+func (db *DB) GetExperienceStats() (*ExperienceStats, error) {
+	out := &ExperienceStats{ByConfidence: map[string]int{}}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM operational_experiences`).Scan(&out.Total); err != nil {
+		return nil, err
+	}
+	out.Indexed, _ = db.CountExperienceEmbeddings()
+	rows, err := db.Query(`SELECT confidence, COUNT(*) FROM operational_experiences GROUP BY confidence`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var conf string
+		var c int
+		if err := rows.Scan(&conf, &c); err != nil {
+			continue
+		}
+		out.ByConfidence[conf] = c
+	}
+	return out, rows.Err()
+}

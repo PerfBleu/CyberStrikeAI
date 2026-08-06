@@ -94,6 +94,13 @@
         deleteKnowledgeItem: 'knowledge:delete',
         deleteRetrievalLog: 'knowledge:delete',
 
+        showAddExperienceModal: 'experience:write',
+        saveExperienceItem: 'experience:write',
+        editExperienceItem: 'experience:write',
+        deleteExperienceItem: 'experience:delete',
+        reindexAllExperiences: 'experience:write',
+        runExperienceSemanticSearch: 'experience:read',
+
         // 设置 / MCP
         applySettings: 'config:write',
         saveToolsConfig: 'config:write',

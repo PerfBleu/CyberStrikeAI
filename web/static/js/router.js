@@ -81,7 +81,7 @@ function initRouter() {
         const hashParts = hash.split('?');
         let pageId = hashParts[0];
         if (pageId === 'c2') pageId = 'c2-listeners';
-        if (pageId && ['dashboard', 'chat', 'hitl', 'asset-overview', 'asset-library', 'info-collect', 'projects', 'vulnerabilities', 'webshell', 'chat-files', 'mcp-monitor', 'mcp-management', 'knowledge-management', 'knowledge-retrieval-logs', 'roles-management', 'platform-rbac', 'workflows', 'skills-monitor', 'skills-management', 'agents-management', 'settings', 'tasks', 'c2-listeners', 'c2-sessions', 'c2-tasks', 'c2-payloads', 'c2-events', 'c2-profiles'].includes(pageId)) {
+        if (pageId && ['dashboard', 'chat', 'hitl', 'asset-overview', 'asset-library', 'info-collect', 'projects', 'vulnerabilities', 'webshell', 'chat-files', 'mcp-monitor', 'mcp-management', 'knowledge-management', 'knowledge-retrieval-logs', 'experience-management', 'roles-management', 'platform-rbac', 'workflows', 'skills-monitor', 'skills-management', 'agents-management', 'settings', 'tasks', 'c2-listeners', 'c2-sessions', 'c2-tasks', 'c2-payloads', 'c2-events', 'c2-profiles'].includes(pageId)) {
             switchPage(pageId);
             if (pageId === 'chat') {
                 scheduleChatConversationFromHash(500);
@@ -172,7 +172,7 @@ function updateNavState(pageId) {
         if (submenuItem) {
             submenuItem.classList.add('active');
         }
-    } else if (pageId === 'knowledge-management' || pageId === 'knowledge-retrieval-logs') {
+    } else if (pageId === 'knowledge-management' || pageId === 'knowledge-retrieval-logs' || pageId === 'experience-management') {
         // 知识子菜单项
         const knowledgeItem = document.querySelector('.nav-item[data-page="knowledge"]');
         if (knowledgeItem) {

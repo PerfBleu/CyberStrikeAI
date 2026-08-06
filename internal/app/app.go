@@ -397,6 +397,7 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 	authHandler.SetAudit(auditSvc)
 	attackChainHandler := handler.NewAttackChainHandler(db, &cfg.OpenAI, log.Logger)
 	vulnerabilityHandler := handler.NewVulnerabilityHandler(db, log.Logger)
+	experienceHandler := handler.NewExperienceHandler(db, func() *config.Config { return cfg }, log.Logger)
 	assetHandler := handler.NewAssetHandler(db, log.Logger)
 	projectHandler := handler.NewProjectHandler(db, log.Logger)
 	rbacHandler := handler.NewRBACHandler(db, log.Logger)
@@ -574,6 +575,7 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 		attackChainHandler,
 		app, // 传递 App 实例以便动态获取 knowledgeHandler
 		vulnerabilityHandler,
+		experienceHandler,
 		assetHandler,
 		projectHandler,
 		workflowHandler,
@@ -877,6 +879,7 @@ func setupRoutes(
 	attackChainHandler *handler.AttackChainHandler,
 	app *App, // 传递 App 实例以便动态获取 knowledgeHandler
 	vulnerabilityHandler *handler.VulnerabilityHandler,
+	experienceHandler *handler.ExperienceHandler,
 	assetHandler *handler.AssetHandler,
 	projectHandler *handler.ProjectHandler,
 	workflowHandler *handler.WorkflowHandler,
@@ -1256,6 +1259,17 @@ func setupRoutes(
 		protected.POST("/vulnerabilities", vulnerabilityHandler.CreateVulnerability)
 		protected.PUT("/vulnerabilities/:id", vulnerabilityHandler.UpdateVulnerability)
 		protected.DELETE("/vulnerabilities/:id", vulnerabilityHandler.DeleteVulnerability)
+
+		// 全局渗透经验库
+		protected.GET("/experiences/stats", experienceHandler.GetStats)
+		protected.POST("/experiences/search", experienceHandler.SearchExperiences)
+		protected.POST("/experiences/reindex", experienceHandler.ReindexAllExperiences)
+		protected.GET("/experiences", experienceHandler.ListExperiences)
+		protected.POST("/experiences", experienceHandler.CreateExperience)
+		protected.GET("/experiences/:id", experienceHandler.GetExperience)
+		protected.PUT("/experiences/:id", experienceHandler.UpdateExperience)
+		protected.DELETE("/experiences/:id", experienceHandler.DeleteExperience)
+		protected.POST("/experiences/:id/reindex", experienceHandler.ReindexExperience)
 
 		// 项目管理与事实黑板
 		protected.GET("/projects/dashboard-summary", projectHandler.GetDashboardSummary)

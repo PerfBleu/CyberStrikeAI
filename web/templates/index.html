@@ -347,6 +347,9 @@
                             <div class="nav-submenu-item" data-page="knowledge-management" onclick="switchPage('knowledge-management')">
                                 <span data-i18n="nav.knowledgeManagement">知识管理</span>
                             </div>
+                            <div class="nav-submenu-item" data-page="experience-management" onclick="switchPage('experience-management')">
+                                <span data-i18n="nav.experienceManagement">渗透经验</span>
+                            </div>
                         </div>
                     </div>
                     <div class="nav-item nav-item-has-submenu" data-page="skills">
@@ -1633,6 +1636,66 @@
                             <div class="loading-spinner" data-i18n="knowledgePage.loading">加载中...</div>
                         </div>
                         <div id="knowledge-pagination"></div>
+                    </div>
+                </div>
+
+                <!-- 全局渗透经验库 -->
+                <div id="page-experience-management" class="page">
+                    <div class="page-header">
+                        <h2 data-i18n="experience.title">渗透经验库</h2>
+                        <div class="page-header-actions">
+                            <button class="btn-secondary" data-require-permission="experience:write" onclick="reindexAllExperiences()" data-i18n="experience.reindexAll">重建向量索引</button>
+                            <button class="btn-primary" data-require-permission="experience:write" onclick="showAddExperienceModal()" data-i18n="experience.add">添加经验</button>
+                        </div>
+                    </div>
+                    <div class="page-content">
+                        <div class="knowledge-controls">
+                            <div class="knowledge-stats-bar" id="experience-stats">
+                                <div class="knowledge-stat-item">
+                                    <span class="knowledge-stat-label" data-i18n="experience.total">总经验数</span>
+                                    <span class="knowledge-stat-value" data-stat="total">-</span>
+                                </div>
+                                <div class="knowledge-stat-item">
+                                    <span class="knowledge-stat-label" data-i18n="experience.indexed">已索引</span>
+                                    <span class="knowledge-stat-value" data-stat="indexed">-</span>
+                                </div>
+                                <div class="knowledge-stat-item">
+                                    <span class="knowledge-stat-label" data-i18n="experience.confirmed">已确认</span>
+                                    <span class="knowledge-stat-value" data-stat="confirmed">-</span>
+                                </div>
+                            </div>
+                            <div class="knowledge-filters">
+                                <label class="knowledge-search-field">
+                                    <input type="text" id="experience-search" data-i18n="experience.searchPlaceholder" data-i18n-attr="placeholder" placeholder="关键词搜索..." oninput="handleExperienceSearchInput()" />
+                                </label>
+                                <label><span data-i18n="experience.vulnType">漏洞类型</span>
+                                    <input type="text" id="experience-vuln-type-filter" placeholder="SQL注入" onchange="loadExperiences(1)" />
+                                </label>
+                                <label><span data-i18n="experience.targetClass">目标类别</span>
+                                    <input type="text" id="experience-target-class-filter" placeholder="ThinkPHP" onchange="loadExperiences(1)" />
+                                </label>
+                                <label><span data-i18n="experience.confidence">置信度</span>
+                                    <select id="experience-confidence-filter" onchange="loadExperiences(1)">
+                                        <option value="" data-i18n="knowledgePage.all">全部</option>
+                                        <option value="confirmed">confirmed</option>
+                                        <option value="tentative">tentative</option>
+                                        <option value="deprecated">deprecated</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="experience-semantic-search" style="margin-top:12px;padding:12px;border:1px solid var(--border-color,#e5e7eb);border-radius:8px;">
+                                <label style="display:block;margin-bottom:8px;font-weight:500;" data-i18n="experience.semanticSearch">语义检索测试</label>
+                                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                    <input type="text" id="experience-semantic-query" style="flex:1;min-width:200px;" data-i18n="experience.semanticPlaceholder" data-i18n-attr="placeholder" placeholder="描述要查找的漏洞模式..." />
+                                    <button type="button" class="btn-secondary" data-require-permission="experience:read" onclick="runExperienceSemanticSearch()" data-i18n="experience.search">检索</button>
+                                </div>
+                                <div id="experience-semantic-results" style="margin-top:12px;"></div>
+                            </div>
+                        </div>
+                        <div id="experience-items-list" class="knowledge-items-list">
+                            <div class="loading-spinner" data-i18n="common.loading">加载中...</div>
+                        </div>
+                        <div id="experience-pagination"></div>
                     </div>
                 </div>
 
@@ -3420,6 +3483,9 @@
                                 <div class="settings-nav-item" data-section="knowledge" onclick="switchSettingsSection('knowledge')">
                                     <span data-i18n="settings.nav.knowledge">知识库</span>
                                 </div>
+                                <div class="settings-nav-item" data-section="experience" onclick="switchSettingsSection('experience')">
+                                    <span data-i18n="settings.nav.experience">渗透经验</span>
+                                </div>
                                 <div class="settings-nav-item" data-section="c2" onclick="switchSettingsSection('c2')">
                                     <span data-i18n="settings.nav.c2">C2</span>
                                 </div>
@@ -4141,6 +4207,81 @@
                                     </div>
                                 </div>
 
+                                <div class="settings-actions">
+                                    <button class="btn-primary" onclick="applySettings()" data-require-permission="config:write" data-i18n="settings.apply.button">应用配置</button>
+                                </div>
+                            </div>
+
+                            <!-- 渗透经验库设置 -->
+                            <div id="settings-section-experience" class="settings-section-content">
+                                <div class="settings-section-header">
+                                    <h3 data-i18n="settings.experience.title">渗透经验库设置</h3>
+                                    <p class="settings-description" data-i18n="settings.experience.description">全局渗透经验库用于跨项目沉淀漏洞模式与利用思路，Agent 通过 MCP 工具按需检索，不会自动注入对话上下文。</p>
+                                </div>
+                                <div class="settings-subsection">
+                                    <div class="settings-form">
+                                        <div class="form-group">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="experience-enabled" class="modern-checkbox" />
+                                                <span class="checkbox-custom"></span>
+                                                <span class="checkbox-text" data-i18n="settings.experience.enableLabel">启用全局渗透经验库</span>
+                                            </label>
+                                            <small class="form-hint" data-i18n="settings.experience.enableHint">关闭后隐藏管理页入口，MCP 工具 record_experience / search_experience 不可用。</small>
+                                        </div>
+                                        <div class="settings-subsection-header">
+                                            <h5 data-i18n="settingsBasic.embeddingConfig">嵌入模型配置</h5>
+                                        </div>
+                                        <p class="form-hint" style="margin: 0 0 12px 0;" data-i18n="settings.experience.embeddingInheritHint">留空则依次继承知识库嵌入配置与 OpenAI 主模型配置。</p>
+                                        <div class="form-group">
+                                            <label for="experience-embedding-provider" data-i18n="settingsBasic.provider">提供商</label>
+                                            <select id="experience-embedding-provider">
+                                                <option value="openai">OpenAI</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-embedding-base-url">Base URL</label>
+                                            <input type="text" id="experience-embedding-base-url" data-i18n="settingsBasic.embeddingBaseUrlPlaceholder" data-i18n-attr="placeholder" placeholder="留空则使用OpenAI配置的base_url" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-embedding-api-key">API Key</label>
+                                            <input type="password" id="experience-embedding-api-key" data-i18n="settingsBasic.embeddingApiKeyPlaceholder" data-i18n-attr="placeholder" placeholder="留空则使用OpenAI配置的api_key" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-embedding-model" data-i18n="settingsBasic.modelName">模型名称</label>
+                                            <input type="text" id="experience-embedding-model" data-i18n="settingsBasic.embeddingModelPlaceholder" data-i18n-attr="placeholder" placeholder="text-embedding-v4" />
+                                        </div>
+                                        <div class="settings-subsection-header">
+                                            <h5 data-i18n="settingsBasic.retrievalConfig">检索配置</h5>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-retrieval-top-k" data-i18n="settingsBasic.topK">Top-K 结果数量</label>
+                                            <input type="number" id="experience-retrieval-top-k" min="1" max="20" placeholder="5" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-retrieval-similarity-threshold" data-i18n="settingsBasic.similarityThreshold">相似度阈值</label>
+                                            <input type="number" id="experience-retrieval-similarity-threshold" min="0" max="1" step="0.05" placeholder="0.65" />
+                                        </div>
+                                        <div class="settings-subsection-header">
+                                            <h5 data-i18n="settings.experience.indexingTitle">索引配置</h5>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-indexing-max-rpm" data-i18n="settingsBasic.maxRpm">每分钟最大请求数（Max RPM）</label>
+                                            <input type="number" id="experience-indexing-max-rpm" min="0" max="1000" placeholder="100" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-indexing-rate-limit-delay-ms" data-i18n="settingsBasic.rateLimitDelay">请求间隔延迟（毫秒）</label>
+                                            <input type="number" id="experience-indexing-rate-limit-delay-ms" min="0" max="10000" placeholder="600" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-indexing-max-retries" data-i18n="settingsBasic.maxRetries">最大重试次数</label>
+                                            <input type="number" id="experience-indexing-max-retries" min="0" max="10" placeholder="3" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="experience-indexing-retry-delay-ms" data-i18n="settingsBasic.retryDelay">重试间隔（毫秒）</label>
+                                            <input type="number" id="experience-indexing-retry-delay-ms" min="0" max="10000" placeholder="1000" />
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="settings-actions">
                                     <button class="btn-primary" onclick="applySettings()" data-require-permission="config:write" data-i18n="settings.apply.button">应用配置</button>
                                 </div>
@@ -5777,6 +5918,58 @@
         </div>
     </div>
 
+    <div id="experience-item-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="experience-item-modal-title" data-i18n="experience.add">添加经验</h2>
+                <span class="modal-close" onclick="closeExperienceModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="experience-item-id" />
+                <div class="form-group">
+                    <label for="experience-item-title"><span data-i18n="experience.itemTitle">标题</span><span style="color: red;">*</span></label>
+                    <input type="text" id="experience-item-title" data-i18n="experience.itemTitlePlaceholder" data-i18n-attr="placeholder" placeholder="简短描述该经验" required />
+                </div>
+                <div class="form-group">
+                    <label for="experience-item-vuln-type" data-i18n="experience.vulnType">漏洞类型</label>
+                    <input type="text" id="experience-item-vuln-type" placeholder="SQL注入、RCE、SSRF..." />
+                </div>
+                <div class="form-group">
+                    <label for="experience-item-target-class" data-i18n="experience.targetClass">目标类别</label>
+                    <input type="text" id="experience-item-target-class" placeholder="ThinkPHP、Spring、泛 Web..." />
+                </div>
+                <div class="form-group">
+                    <label for="experience-item-confidence" data-i18n="experience.confidence">置信度</label>
+                    <select id="experience-item-confidence">
+                        <option value="tentative">tentative</option>
+                        <option value="confirmed">confirmed</option>
+                        <option value="deprecated">deprecated</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="experience-item-tags" data-i18n="experience.tags">标签</label>
+                    <input type="text" id="experience-item-tags" data-i18n="experience.tagsPlaceholder" data-i18n-attr="placeholder" placeholder="逗号分隔，如 bypass,WAF" />
+                </div>
+                <div class="form-group">
+                    <label for="experience-item-fingerprint" data-i18n="experience.fingerprint">特征指纹</label>
+                    <textarea id="experience-item-fingerprint" rows="4" data-i18n="experience.fingerprintHint" data-i18n-attr="placeholder" placeholder="响应特征、版本号、错误信息等（勿含具体 URL/IP）"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="experience-item-detection-hints" data-i18n="experience.detectionHints">检测思路</label>
+                    <textarea id="experience-item-detection-hints" rows="5" data-i18n="experience.detectionHintsHint" data-i18n-attr="placeholder" placeholder="如何发现此类漏洞的通用步骤"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="experience-item-exploit-pattern" data-i18n="experience.exploitPattern">利用模式</label>
+                    <textarea id="experience-item-exploit-pattern" rows="5" data-i18n="experience.exploitPatternHint" data-i18n-attr="placeholder" placeholder="泛化的利用思路与 payload 结构（勿含目标专属信息）"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeExperienceModal()" data-i18n="common.cancel">取消</button>
+                <button class="btn-primary" data-require-permission="experience:write" onclick="saveExperienceItem()" data-i18n="common.save">保存</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 批量管理对话模态框 -->
     <div id="batch-manage-modal" class="modal">
         <div class="modal-content batch-manage-modal-content">
@@ -6726,6 +6919,7 @@
     <script src="/static/vendor/xterm-addon-fit.js"></script>
     <script src="/static/js/terminal.js"></script>
     <script src="/static/js/knowledge.js"></script>
+    <script src="/static/js/experience.js"></script>
     <script src="/static/js/skills.js"></script>
     <script src="/static/js/fact-graph.js"></script>
     <script src="/static/js/projects.js?v=20260717-1"></script>

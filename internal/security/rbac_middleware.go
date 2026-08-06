@@ -149,6 +149,17 @@ func permissionForRequest(method, fullPath string) string {
 			return "knowledge:read"
 		}
 		return crudPermission(method, "knowledge")
+	case strings.HasPrefix(path, "/experiences"):
+		if path == "/experiences/search" {
+			return "experience:read"
+		}
+		if path == "/experiences/reindex" {
+			return "experience:write"
+		}
+		if strings.HasSuffix(path, "/reindex") {
+			return "experience:write"
+		}
+		return crudPermission(method, "experience")
 	case strings.HasPrefix(path, "/vulnerabilities"):
 		return crudPermission(method, "vulnerability")
 	case path == "/assets/batch-delete", path == "/assets/merge":
