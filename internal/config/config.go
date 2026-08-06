@@ -36,6 +36,7 @@ type Config struct {
 	Monitor     MonitorConfig         `yaml:"monitor,omitempty" json:"monitor,omitempty"`
 	ExternalMCP ExternalMCPConfig     `yaml:"external_mcp,omitempty"`
 	Knowledge   KnowledgeConfig       `yaml:"knowledge,omitempty"`
+	Experience  ExperienceConfig      `yaml:"experience,omitempty" json:"experience,omitempty"` // 全局渗透经验库（向量检索）
 	C2          C2Config              `yaml:"c2,omitempty" json:"c2,omitempty"`                 // 内置 C2 总开关；未配置时默认启用
 	Robots      RobotsConfig          `yaml:"robots,omitempty" json:"robots,omitempty"`         // 企业微信/钉钉/飞书等机器人配置
 	RolesDir    string                `yaml:"roles_dir,omitempty" json:"roles_dir,omitempty"`   // 角色配置文件目录（新方式）
@@ -1925,6 +1926,13 @@ func Default() *Config {
 				StrictUserIdentity: &strictRobotIdentity,
 			},
 		},
+		Experience: ExperienceConfig{
+			Enabled: false,
+			Retrieval: ExperienceRetrievalConfig{
+				TopK:                5,
+				SimilarityThreshold: 0.65,
+			},
+		},
 		Knowledge: KnowledgeConfig{
 			Enabled:  true,
 			BasePath: "knowledge_base",
@@ -1987,6 +1995,75 @@ func (c C2Config) Public() C2Public {
 // C2APIUpdate 设置页/API 更新 C2 开关。
 type C2APIUpdate struct {
 	Enabled bool `json:"enabled"`
+}
+
+// ExperienceConfig 全局渗透经验库（跨项目、向量语义检索）。
+type ExperienceConfig struct {
+	Enabled   bool                      `yaml:"enabled" json:"enabled"`
+	Embedding EmbeddingConfig           `yaml:"embedding" json:"embedding"`
+	Retrieval ExperienceRetrievalConfig `yaml:"retrieval" json:"retrieval"`
+	Indexing  IndexingConfig            `yaml:"indexing,omitempty" json:"indexing,omitempty"`
+}
+
+// ExperienceRetrievalConfig 经验库检索参数（不含 MultiQuery/Rerank，保持轻量）。
+type ExperienceRetrievalConfig struct {
+	TopK                int     `yaml:"top_k" json:"top_k"`
+	SimilarityThreshold float64 `yaml:"similarity_threshold" json:"similarity_threshold"`
+}
+
+func (c ExperienceRetrievalConfig) TopKEffective() int {
+	if c.TopK <= 0 {
+		return 5
+	}
+	return c.TopK
+}
+
+func (c ExperienceRetrievalConfig) SimilarityThresholdEffective() float64 {
+	if c.SimilarityThreshold <= 0 {
+		return 0.65
+	}
+	return c.SimilarityThreshold
+}
+
+// ResolveExperienceEmbedding 合并 experience / knowledge / openai 的嵌入配置。
+func ResolveExperienceEmbedding(cfg *Config) EmbeddingConfig {
+	if cfg == nil {
+		return EmbeddingConfig{}
+	}
+	out := cfg.Experience.Embedding
+	if strings.TrimSpace(out.Model) == "" {
+		out.Model = strings.TrimSpace(cfg.Knowledge.Embedding.Model)
+	}
+	if strings.TrimSpace(out.Provider) == "" {
+		out.Provider = strings.TrimSpace(cfg.Knowledge.Embedding.Provider)
+	}
+	if strings.TrimSpace(out.BaseURL) == "" {
+		out.BaseURL = strings.TrimSpace(cfg.Knowledge.Embedding.BaseURL)
+	}
+	if strings.TrimSpace(out.APIKey) == "" {
+		out.APIKey = strings.TrimSpace(cfg.Knowledge.Embedding.APIKey)
+	}
+	if strings.TrimSpace(out.Provider) == "" {
+		out.Provider = "openai"
+	}
+	if strings.TrimSpace(out.Model) == "" {
+		out.Model = "text-embedding-3-small"
+	}
+	return out
+}
+
+// KnowledgeConfigForExperienceEmbedder 构造供 knowledge.NewEmbedder 使用的配置。
+func KnowledgeConfigForExperienceEmbedder(cfg *Config) *KnowledgeConfig {
+	if cfg == nil {
+		return &KnowledgeConfig{}
+	}
+	kc := cfg.Knowledge
+	kc.Embedding = ResolveExperienceEmbedding(cfg)
+	if cfg.Experience.Indexing.ChunkSize > 0 || cfg.Experience.Indexing.MaxRetries > 0 ||
+		cfg.Experience.Indexing.MaxRPM > 0 || cfg.Experience.Indexing.RateLimitDelayMs > 0 {
+		kc.Indexing = cfg.Experience.Indexing
+	}
+	return &kc
 }
 
 // KnowledgeConfig 知识库配置

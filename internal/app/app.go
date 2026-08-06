@@ -165,6 +165,7 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 	registerVulnerabilityTools(mcpServer, db, log.Logger)
 	registerAssetTools(mcpServer, db, log.Logger)
 	registerProjectFactTools(mcpServer, db, cfg, log.Logger)
+	registerExperienceTools(mcpServer, db, cfg, log.Logger)
 	registerVisionTools(mcpServer, cfg, log.Logger)
 
 	// 创建外部MCP管理器（使用与内部MCP服务器相同的存储）
@@ -484,6 +485,7 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 		registerVulnerabilityTools(mcpServer, db, log.Logger)
 		registerAssetTools(mcpServer, db, log.Logger)
 		registerProjectFactTools(mcpServer, db, cfg, log.Logger)
+		registerExperienceTools(mcpServer, db, cfg, log.Logger)
 		registerVisionTools(mcpServer, cfg, log.Logger)
 		return nil
 	}

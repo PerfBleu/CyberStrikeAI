@@ -411,6 +411,39 @@ func (db *DB) initTables() error {
 		FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
 	);`
 
+	// 全局渗透经验（跨项目、向量检索）
+	createOperationalExperiencesTable := `
+	CREATE TABLE IF NOT EXISTS operational_experiences (
+		id TEXT PRIMARY KEY,
+		title TEXT NOT NULL,
+		vuln_type TEXT NOT NULL DEFAULT '',
+		target_class TEXT NOT NULL DEFAULT '',
+		fingerprint TEXT NOT NULL DEFAULT '',
+		exploit_pattern TEXT NOT NULL DEFAULT '',
+		detection_hints TEXT NOT NULL DEFAULT '',
+		tags TEXT NOT NULL DEFAULT '',
+		confidence TEXT NOT NULL DEFAULT 'tentative',
+		source_project_id TEXT,
+		source_vulnerability_id TEXT,
+		source_conversation_id TEXT,
+		owner_user_id TEXT,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL
+	);`
+
+	createExperienceEmbeddingsTable := `
+	CREATE TABLE IF NOT EXISTS experience_embeddings (
+		id TEXT PRIMARY KEY,
+		experience_id TEXT NOT NULL,
+		chunk_index INTEGER NOT NULL,
+		chunk_text TEXT NOT NULL,
+		embedding TEXT NOT NULL,
+		embedding_model TEXT NOT NULL DEFAULT '',
+		embedding_dim INTEGER NOT NULL DEFAULT 0,
+		created_at DATETIME NOT NULL,
+		FOREIGN KEY (experience_id) REFERENCES operational_experiences(id) ON DELETE CASCADE
+	);`
+
 	createAssetsTable := `
 	CREATE TABLE IF NOT EXISTS assets (
 		id TEXT PRIMARY KEY,
@@ -759,6 +792,11 @@ func (db *DB) initTables() error {
 	CREATE INDEX IF NOT EXISTS idx_project_fact_edges_target ON project_fact_edges(project_id, target_fact_key);
 	CREATE INDEX IF NOT EXISTS idx_conversations_project_id ON conversations(project_id);
 	CREATE INDEX IF NOT EXISTS idx_vulnerabilities_project_id ON vulnerabilities(project_id);
+	CREATE INDEX IF NOT EXISTS idx_operational_experiences_vuln_type ON operational_experiences(vuln_type);
+	CREATE INDEX IF NOT EXISTS idx_operational_experiences_target_class ON operational_experiences(target_class);
+	CREATE INDEX IF NOT EXISTS idx_operational_experiences_confidence ON operational_experiences(confidence);
+	CREATE INDEX IF NOT EXISTS idx_operational_experiences_updated_at ON operational_experiences(updated_at);
+	CREATE INDEX IF NOT EXISTS idx_experience_embeddings_experience_id ON experience_embeddings(experience_id);
 	CREATE INDEX IF NOT EXISTS idx_batch_tasks_queue_id ON batch_tasks(queue_id);
 	CREATE INDEX IF NOT EXISTS idx_batch_task_queues_created_at ON batch_task_queues(created_at);
 	CREATE INDEX IF NOT EXISTS idx_batch_task_queues_title ON batch_task_queues(title);
@@ -858,6 +896,12 @@ func (db *DB) initTables() error {
 
 	if _, err := db.Exec(createVulnerabilitiesTable); err != nil {
 		return fmt.Errorf("创建vulnerabilities表失败: %w", err)
+	}
+	if _, err := db.Exec(createOperationalExperiencesTable); err != nil {
+		return fmt.Errorf("创建operational_experiences表失败: %w", err)
+	}
+	if _, err := db.Exec(createExperienceEmbeddingsTable); err != nil {
+		return fmt.Errorf("创建experience_embeddings表失败: %w", err)
 	}
 	if _, err := db.Exec(createAssetsTable); err != nil {
 		return fmt.Errorf("创建assets表失败: %w", err)

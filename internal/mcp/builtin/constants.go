@@ -28,6 +28,12 @@ const (
 	ToolListKnowledgeRiskTypes = "list_knowledge_risk_types"
 	ToolSearchKnowledgeBase    = "search_knowledge_base"
 
+	// 全局渗透经验库
+	ToolRecordExperience = "record_experience"
+	ToolSearchExperience = "search_experience"
+	ToolGetExperience    = "get_experience"
+	ToolListExperiences  = "list_experiences"
+
 	// 视觉分析（本地图片 → VL 模型 → 文本摘要）
 	ToolAnalyzeImage = "analyze_image"
 
@@ -95,6 +101,10 @@ func IsBuiltinTool(toolName string) bool {
 		ToolRestoreProjectFact,
 		ToolListKnowledgeRiskTypes,
 		ToolSearchKnowledgeBase,
+		ToolRecordExperience,
+		ToolSearchExperience,
+		ToolGetExperience,
+		ToolListExperiences,
 		ToolAnalyzeImage,
 		ToolGetToolExecution,
 		ToolWaitToolExecution,
@@ -156,6 +166,10 @@ func GetAllBuiltinTools() []string {
 		ToolRestoreProjectFact,
 		ToolListKnowledgeRiskTypes,
 		ToolSearchKnowledgeBase,
+		ToolRecordExperience,
+		ToolSearchExperience,
+		ToolGetExperience,
+		ToolListExperiences,
 		ToolAnalyzeImage,
 		ToolGetToolExecution,
 		ToolWaitToolExecution,

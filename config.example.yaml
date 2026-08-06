@@ -417,6 +417,25 @@ knowledge:
     # Eino indexer.WithSubIndexes：逻辑分区标签列表，会写入向量表 sub_indexes，检索可用 sub_index_filter 过滤；无需求可 []
     sub_indexes: []
 # ============================================
+# 全局渗透经验库（跨项目、向量语义检索）
+# ============================================
+# 与 knowledge（静态知识）和 project_facts（项目黑板）分离；Agent 通过 record_experience / search_experience 读写
+experience:
+  enabled: false
+  embedding:
+    provider: openai
+    model: "" # 留空则继承 knowledge.embedding，再继承 openai
+    base_url: ""
+    api_key: ""
+  retrieval:
+    top_k: 5
+    similarity_threshold: 0.65
+  indexing:
+    max_retries: 3
+    retry_delay_ms: 1000
+    max_rpm: 100
+    rate_limit_delay_ms: 600
+# ============================================
 # 机器人配置（企业微信、钉钉、飞书）
 # ============================================
 # 用于在手机端通过企业微信/钉钉/飞书与 CyberStrikeAI 对话，无需部署在服务器上也可使用
