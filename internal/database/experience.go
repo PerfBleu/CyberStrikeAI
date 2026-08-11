@@ -152,6 +152,34 @@ func (db *DB) GetOperationalExperience(id string) (*OperationalExperience, error
 	return &exp, nil
 }
 
+// GetOperationalExperienceBySourceVulnerabilityID 按来源漏洞 ID 查是否已自动沉淀经验。
+func (db *DB) GetOperationalExperienceBySourceVulnerabilityID(vulnID string) (*OperationalExperience, error) {
+	vulnID = strings.TrimSpace(vulnID)
+	if vulnID == "" {
+		return nil, fmt.Errorf("vulnerability id 为空")
+	}
+	var exp OperationalExperience
+	err := db.QueryRow(`
+		SELECT id, title, COALESCE(vuln_type,''), COALESCE(target_class,''),
+		       COALESCE(fingerprint,''), COALESCE(exploit_pattern,''), COALESCE(detection_hints,''),
+		       COALESCE(tags,''), confidence,
+		       COALESCE(source_project_id,''), COALESCE(source_vulnerability_id,''), COALESCE(source_conversation_id,''),
+		       COALESCE(owner_user_id,''), created_at, updated_at
+		FROM operational_experiences WHERE source_vulnerability_id = ? LIMIT 1`, vulnID).Scan(
+		&exp.ID, &exp.Title, &exp.VulnType, &exp.TargetClass,
+		&exp.Fingerprint, &exp.ExploitPattern, &exp.DetectionHints, &exp.Tags, &exp.Confidence,
+		&exp.SourceProjectID, &exp.SourceVulnerabilityID, &exp.SourceConversationID, &exp.OwnerUserID,
+		&exp.CreatedAt, &exp.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("按来源漏洞查询经验失败: %w", err)
+	}
+	return &exp, nil
+}
+
 // UpdateOperationalExperience 更新经验（不含向量，向量由 experience 包单独重建）。
 func (db *DB) UpdateOperationalExperience(id string, exp *OperationalExperience) error {
 	exp.UpdatedAt = time.Now()

@@ -260,7 +260,7 @@ func (h *AgentHandler) MultiAgentLoopStream(c *gin.Context) {
 			h.agentsMarkdownDir,
 			orch,
 			chatReasoningToClientIntent(req.Reasoning),
-			h.agentSessionContextBlock(conversationID),
+			h.agentSessionContextBlock(conversationID, curFinalMessage),
 		)
 
 		if result != nil && len(result.MCPExecutionIDs) > 0 {
@@ -481,7 +481,7 @@ func (h *AgentHandler) MultiAgentLoop(c *gin.Context) {
 			h.agentsMarkdownDir,
 			strings.TrimSpace(req.Orchestration),
 			chatReasoningToClientIntent(req.Reasoning),
-			h.agentSessionContextBlock(prep.ConversationID),
+			h.agentSessionContextBlock(prep.ConversationID, prep.FinalMessage),
 		)
 		if runErr != nil {
 			if shouldPersistEinoAgentTraceAfterRunError(baseCtx) {

@@ -1583,6 +1583,10 @@
       "description": "全局渗透经验库用于跨项目沉淀漏洞模式与利用思路，Agent 通过 MCP 工具按需检索，不会自动注入对话上下文。",
       "enableLabel": "启用全局渗透经验库",
       "enableHint": "关闭后隐藏管理页入口，MCP 工具 record_experience / search_experience 不可用。",
+      "autoInjectLabel": "自动检索并注入相关经验",
+      "autoInjectHint": "每轮对话按用户消息语义检索经验库，将摘要追加到上下文（无需 Agent 手动调用 search_experience）。",
+      "autoRecordLabel": "漏洞落库后自动沉淀经验",
+      "autoRecordHint": "record_vulnerability 成功后自动泛化写入经验库（脱敏 URL/IP，无需手动 record_experience）。",
       "embeddingInheritHint": "留空则依次继承知识库嵌入配置与 OpenAI 主模型配置。",
       "indexingTitle": "索引配置"
     },

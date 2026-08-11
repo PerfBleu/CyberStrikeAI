@@ -4228,6 +4228,22 @@
                                             </label>
                                             <small class="form-hint" data-i18n="settings.experience.enableHint">关闭后隐藏管理页入口，MCP 工具 record_experience / search_experience 不可用。</small>
                                         </div>
+                                        <div class="form-group">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="experience-auto-inject" class="modern-checkbox" checked />
+                                                <span class="checkbox-custom"></span>
+                                                <span class="checkbox-text" data-i18n="settings.experience.autoInjectLabel">自动检索并注入相关经验</span>
+                                            </label>
+                                            <small class="form-hint" data-i18n="settings.experience.autoInjectHint">每轮对话按用户消息语义检索经验库，将摘要追加到上下文（无需 Agent 手动调用 search_experience）。</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="experience-auto-record" class="modern-checkbox" checked />
+                                                <span class="checkbox-custom"></span>
+                                                <span class="checkbox-text" data-i18n="settings.experience.autoRecordLabel">漏洞落库后自动沉淀经验</span>
+                                            </label>
+                                            <small class="form-hint" data-i18n="settings.experience.autoRecordHint">record_vulnerability 成功后自动泛化写入经验库（脱敏 URL/IP，无需手动 record_experience）。</small>
+                                        </div>
                                         <div class="settings-subsection-header">
                                             <h5 data-i18n="settingsBasic.embeddingConfig">嵌入模型配置</h5>
                                         </div>

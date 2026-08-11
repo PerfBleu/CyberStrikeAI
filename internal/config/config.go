@@ -1999,10 +1999,34 @@ type C2APIUpdate struct {
 
 // ExperienceConfig 全局渗透经验库（跨项目、向量语义检索）。
 type ExperienceConfig struct {
-	Enabled   bool                      `yaml:"enabled" json:"enabled"`
-	Embedding EmbeddingConfig           `yaml:"embedding" json:"embedding"`
-	Retrieval ExperienceRetrievalConfig `yaml:"retrieval" json:"retrieval"`
-	Indexing  IndexingConfig            `yaml:"indexing,omitempty" json:"indexing,omitempty"`
+	Enabled    bool                      `yaml:"enabled" json:"enabled"`
+	AutoInject *bool                     `yaml:"auto_inject,omitempty" json:"auto_inject,omitempty"` // 默认 true：按用户消息自动检索并注入摘要
+	AutoRecord *bool                     `yaml:"auto_record,omitempty" json:"auto_record,omitempty"` // 默认 true：record_vulnerability 成功后自动泛化写入经验库
+	Embedding  EmbeddingConfig           `yaml:"embedding" json:"embedding"`
+	Retrieval  ExperienceRetrievalConfig `yaml:"retrieval" json:"retrieval"`
+	Indexing   IndexingConfig            `yaml:"indexing,omitempty" json:"indexing,omitempty"`
+}
+
+// AutoInjectEffective 是否在对话开始时自动检索并注入相关经验（需 enabled）。
+func (c ExperienceConfig) AutoInjectEffective() bool {
+	if !c.Enabled {
+		return false
+	}
+	if c.AutoInject == nil {
+		return true
+	}
+	return *c.AutoInject
+}
+
+// AutoRecordEffective 是否在漏洞落库后自动泛化写入经验库（需 enabled）。
+func (c ExperienceConfig) AutoRecordEffective() bool {
+	if !c.Enabled {
+		return false
+	}
+	if c.AutoRecord == nil {
+		return true
+	}
+	return *c.AutoRecord
 }
 
 // ExperienceRetrievalConfig 经验库检索参数（不含 MultiQuery/Rerank，保持轻量）。

@@ -422,6 +422,8 @@ knowledge:
 # 与 knowledge（静态知识）和 project_facts（项目黑板）分离；Agent 通过 record_experience / search_experience 读写
 experience:
   enabled: false
+  auto_inject: true   # 按用户消息自动语义检索并注入相关经验摘要（无感）
+  auto_record: true   # record_vulnerability 成功后自动泛化写入经验库（无感）
   embedding:
     provider: openai
     model: "" # 留空则继承 knowledge.embedding，再继承 openai

@@ -2039,6 +2039,16 @@ func updateExperienceConfig(doc *yaml.Node, cfg config.ExperienceConfig) {
 	root := doc.Content[0]
 	node := ensureMap(root, "experience")
 	setBoolInMap(node, "enabled", cfg.Enabled)
+	autoInject := true
+	if cfg.AutoInject != nil {
+		autoInject = *cfg.AutoInject
+	}
+	autoRecord := true
+	if cfg.AutoRecord != nil {
+		autoRecord = *cfg.AutoRecord
+	}
+	setBoolInMap(node, "auto_inject", autoInject)
+	setBoolInMap(node, "auto_record", autoRecord)
 
 	embeddingNode := ensureMap(node, "embedding")
 	setStringInMap(embeddingNode, "provider", cfg.Embedding.Provider)

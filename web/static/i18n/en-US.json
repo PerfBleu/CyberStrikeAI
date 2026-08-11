@@ -1594,6 +1594,10 @@
       "description": "Cross-project vulnerability patterns and exploit ideas. Agents pull via MCP tools on demand; nothing is auto-injected into chat context.",
       "enableLabel": "Enable global penetration experience library",
       "enableHint": "When off, the management page and record_experience / search_experience MCP tools are unavailable.",
+      "autoInjectLabel": "Auto-retrieve and inject relevant experiences",
+      "autoInjectHint": "Each turn semantically searches the experience library from the user message and appends a summary to context (no manual search_experience).",
+      "autoRecordLabel": "Auto-save experiences after vulnerability records",
+      "autoRecordHint": "After record_vulnerability succeeds, generalized patterns are written to the library (URLs/IPs redacted; no manual record_experience).",
       "embeddingInheritHint": "Leave blank to inherit knowledge-base embedding, then OpenAI main config.",
       "indexingTitle": "Indexing"
     },

@@ -1,21 +1,26 @@
 package handler
 
 import (
+	"context"
 	"strings"
 
+	"cyberstrike-ai/internal/experience"
 	"cyberstrike-ai/internal/project"
 	"go.uber.org/zap"
 )
 
-// agentSessionContextBlock 注入会话工作目录与项目黑板（用于 system prompt 追加块）。
-// 用户输入由 message history 承载；压缩后由 summarization 摘要指令保留关键约束。
-func (h *AgentHandler) agentSessionContextBlock(conversationID string) string {
+// agentSessionContextBlock 注入会话工作目录、项目黑板与相关渗透经验（用于 system prompt 追加块）。
+// userQuery 为当前轮用户消息，用于无感语义检索经验；可为空。
+func (h *AgentHandler) agentSessionContextBlock(conversationID, userQuery string) string {
 	var parts []string
 	if ws := h.buildWorkspaceBlock(conversationID); ws != "" {
 		parts = append(parts, ws)
 	}
 	if bb := h.projectBlackboardBlock(conversationID); bb != "" {
 		parts = append(parts, bb)
+	}
+	if exp := h.experienceContextBlock(userQuery); exp != "" {
+		parts = append(parts, exp)
 	}
 	return strings.Join(parts, "\n\n")
 }
@@ -65,6 +70,22 @@ func (h *AgentHandler) projectBlackboardBlock(conversationID string) string {
 		h.logger.Warn("构建项目黑板索引失败", zap.String("conversationId", conversationID), zap.Error(err))
 		return ""
 	}
+	return strings.TrimSpace(block)
+}
+
+func (h *AgentHandler) experienceContextBlock(userQuery string) string {
+	if h == nil || h.config == nil || !h.config.Experience.AutoInjectEffective() || h.experienceProvider == nil {
+		return ""
+	}
+	ctx := context.Background()
+	svc, err := h.experienceProvider.Get(ctx)
+	if err != nil {
+		if h.logger != nil {
+			h.logger.Debug("经验自动检索跳过", zap.Error(err))
+		}
+		return ""
+	}
+	block := experience.BuildInjectBlock(ctx, svc, &h.config.Experience, userQuery)
 	return strings.TrimSpace(block)
 }
 

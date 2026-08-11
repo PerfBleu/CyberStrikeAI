@@ -22,6 +22,7 @@ import (
 	"cyberstrike-ai/internal/config"
 	"cyberstrike-ai/internal/database"
 	"cyberstrike-ai/internal/einoobserve"
+	"cyberstrike-ai/internal/experience"
 	"cyberstrike-ai/internal/handler"
 	"cyberstrike-ai/internal/hitl"
 	"cyberstrike-ai/internal/knowledge"
@@ -72,6 +73,7 @@ type App struct {
 	c2WatchdogCancel   context.CancelFunc        // 看门狗取消函数
 	c2Handler          *handler.C2Handler        // C2 REST（与 Manager 生命周期同步）
 	auditSvc           *audit.Service
+	experienceProvider *experience.Provider
 }
 
 // New 创建新应用
@@ -161,8 +163,10 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 	// 注册工具
 	executor.RegisterTools(mcpServer)
 
+	experienceProvider := experience.NewProvider(db, func() *config.Config { return cfg }, log.Logger)
+
 	// 注册漏洞记录工具
-	registerVulnerabilityTools(mcpServer, db, log.Logger)
+	registerVulnerabilityTools(mcpServer, db, experienceProvider, log.Logger)
 	registerAssetTools(mcpServer, db, log.Logger)
 	registerProjectFactTools(mcpServer, db, cfg, log.Logger)
 	registerExperienceTools(mcpServer, db, cfg, log.Logger)
@@ -385,6 +389,7 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 	if knowledgeManager != nil {
 		agentHandler.SetKnowledgeManager(knowledgeManager)
 	}
+	agentHandler.SetExperienceProvider(experienceProvider)
 	monitorHandler := handler.NewMonitorHandler(mcpServer, executor, db, log.Logger)
 	monitorHandler.SetAudit(auditSvc)
 	monitorHandler.SetMonitorRetention(monitorRetention)
@@ -474,6 +479,7 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 		c2WatchdogCancel:   watchdogCancel,
 		c2Handler:          c2Handler,
 		auditSvc:           auditSvc,
+		experienceProvider: experienceProvider,
 	}
 	// 飞书/钉钉长连接（无需公网），启用时在后台启动；后续前端应用配置时会通过 RestartRobotConnections 重启
 	app.startRobotConnections()
@@ -483,7 +489,8 @@ func New(cfg *config.Config, log *logger.Logger, configPath string) (*App, error
 
 	// 设置漏洞工具注册器（内置工具，必须设置）
 	vulnerabilityRegistrar := func() error {
-		registerVulnerabilityTools(mcpServer, db, log.Logger)
+		experienceProvider.Invalidate()
+		registerVulnerabilityTools(mcpServer, db, experienceProvider, log.Logger)
 		registerAssetTools(mcpServer, db, log.Logger)
 		registerProjectFactTools(mcpServer, db, cfg, log.Logger)
 		registerExperienceTools(mcpServer, db, cfg, log.Logger)

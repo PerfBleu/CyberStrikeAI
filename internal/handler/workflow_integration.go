@@ -102,7 +102,7 @@ func (h *AgentHandler) runRoleWorkflowStreamIfBound(
 		History:            prep.History,
 		RoleTools:          prep.RoleTools,
 		AgentsMarkdownDir:  h.agentsMarkdownDir,
-		SystemPromptExtra:  h.agentSessionContextBlock(conversationID),
+		SystemPromptExtra:  h.agentSessionContextBlock(conversationID, prep.FinalMessage),
 		AssistantMessageID: assistantMessageID,
 		Progress:           progress,
 	})
@@ -240,7 +240,7 @@ func (h *AgentHandler) runRoleWorkflowJSONIfBound(c *gin.Context, req *ChatReque
 		History:            prep.History,
 		RoleTools:          prep.RoleTools,
 		AgentsMarkdownDir:  h.agentsMarkdownDir,
-		SystemPromptExtra:  h.agentSessionContextBlock(conversationID),
+		SystemPromptExtra:  h.agentSessionContextBlock(conversationID, prep.FinalMessage),
 		AssistantMessageID: assistantMessageID,
 		Progress:           progress,
 	})

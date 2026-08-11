@@ -21,6 +21,7 @@ import (
 	"cyberstrike-ai/internal/authctx"
 	"cyberstrike-ai/internal/config"
 	"cyberstrike-ai/internal/database"
+	"cyberstrike-ai/internal/experience"
 	"cyberstrike-ai/internal/mcp/builtin"
 	"cyberstrike-ai/internal/multiagent"
 	"cyberstrike-ai/internal/openai"
@@ -192,6 +193,7 @@ type AgentHandler struct {
 	hitlDefaultReviewerSaver HitlDefaultReviewerSaver
 	auditLLM                 *openai.Client
 	audit                    *audit.Service
+	experienceProvider       *experience.Provider
 }
 
 // SetAudit wires platform audit logging.
@@ -280,6 +282,14 @@ func (h *AgentHandler) SetKnowledgeManager(manager interface {
 	LogRetrieval(conversationID, messageID, query, riskType string, retrievedItems []string) error
 }) {
 	h.knowledgeManager = manager
+}
+
+// SetExperienceProvider 设置全局经验库 Provider（自动检索/写入）。
+func (h *AgentHandler) SetExperienceProvider(p *experience.Provider) {
+	if h == nil {
+		return
+	}
+	h.experienceProvider = p
 }
 
 // SetAgentsMarkdownDir 设置 agents/*.md 子代理目录（绝对路径）；空表示仅使用 config.yaml 中的 sub_agents。
@@ -729,7 +739,7 @@ func (h *AgentHandler) runRobotEinoSingleWithRetry(
 ) (string, string, error) {
 	resultMA, errMA := multiagent.RunEinoSingleChatModelAgent(
 		taskCtx, h.config, &h.config.MultiAgent, h.agent, h.db, h.logger,
-		conversationID, h.conversationProjectID(conversationID), finalMessage, history, roleTools, progressCallback, nil, h.agentSessionContextBlock(conversationID),
+		conversationID, h.conversationProjectID(conversationID), finalMessage, history, roleTools, progressCallback, nil, h.agentSessionContextBlock(conversationID, finalMessage),
 	)
 	if errMA != nil {
 		*taskStatus = "failed"
@@ -750,7 +760,7 @@ func (h *AgentHandler) runRobotMultiAgentWithRetry(
 	resultMA, errMA := multiagent.RunDeepAgent(
 		taskCtx, h.config, &h.config.MultiAgent, h.agent, h.db, h.logger,
 		conversationID, h.conversationProjectID(conversationID), finalMessage, history, roleTools, progressCallback,
-		h.agentsMarkdownDir, orchestration, nil, h.agentSessionContextBlock(conversationID),
+		h.agentsMarkdownDir, orchestration, nil, h.agentSessionContextBlock(conversationID, finalMessage),
 	)
 	if errMA != nil {
 		*taskStatus = "failed"

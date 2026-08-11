@@ -1029,6 +1029,16 @@ async function loadConfig(loadTools = true, options = {}) {
         if (experienceEnabledCb) {
             experienceEnabledCb.checked = currentConfig.experience?.enabled === true;
         }
+        const experienceAutoInjectCb = document.getElementById('experience-auto-inject');
+        if (experienceAutoInjectCb) {
+            const v = currentConfig.experience?.auto_inject;
+            experienceAutoInjectCb.checked = v !== false;
+        }
+        const experienceAutoRecordCb = document.getElementById('experience-auto-record');
+        if (experienceAutoRecordCb) {
+            const v = currentConfig.experience?.auto_record;
+            experienceAutoRecordCb.checked = v !== false;
+        }
         if (currentConfig.experience) {
             const exp = currentConfig.experience;
             const expEmb = exp.embedding || {};
@@ -1979,6 +1989,8 @@ async function applySettings() {
 
         const experienceConfig = {
             enabled: document.getElementById('experience-enabled')?.checked === true,
+            auto_inject: document.getElementById('experience-auto-inject')?.checked !== false,
+            auto_record: document.getElementById('experience-auto-record')?.checked !== false,
             embedding: {
                 provider: document.getElementById('experience-embedding-provider')?.value || 'openai',
                 model: document.getElementById('experience-embedding-model')?.value.trim() || '',
