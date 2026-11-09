@@ -1940,6 +1940,10 @@ func PrintBootstrapAdminPassword(password string) {
 	termout.PrintBootstrapAdminCredentials(password)
 }
 
+func PrintBootstrapAdminPasswordConfigured() {
+	termout.PrintBootstrapAdminPasswordConfigured()
+}
+
 // generateRandomToken 生成用于 MCP 鉴权的随机字符串（64 位十六进制）
 func generateRandomToken() (string, error) {
 	b := make([]byte, 32)

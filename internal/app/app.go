@@ -122,7 +122,11 @@ func New(cfg *config.Config, log *logger.Logger, configPath, updateActivation st
 	if generatedPassword, err := authManager.AttachRBACStore(db); err != nil {
 		return nil, fmt.Errorf("初始化RBAC失败: %w", err)
 	} else if generatedPassword != "" {
-		config.PrintBootstrapAdminPassword(generatedPassword)
+		if strings.TrimSpace(os.Getenv(security.EnvAdminPassword)) != "" {
+			config.PrintBootstrapAdminPasswordConfigured()
+		} else {
+			config.PrintBootstrapAdminPassword(generatedPassword)
+		}
 	}
 	for platform, userID := range cfg.Robots.ServiceAccountUserIDs() {
 		user, userErr := db.GetRBACUserByID(userID)

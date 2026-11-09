@@ -112,3 +112,13 @@ func PrintBootstrapAdminCredentials(password string) {
 	s.Println(s.Dim("    Change it in Settings immediately after signing in."))
 	s.BlankLine()
 }
+
+// PrintBootstrapAdminPasswordConfigured 提示已使用 CYBERSTRIKE_ADMIN_PASSWORD，不回显密码。
+func PrintBootstrapAdminPasswordConfigured() {
+	s := New(os.Stdout)
+	s.Println(s.Bold(s.Yellow("ADMIN SETUP COMPLETE")))
+	s.Println(s.Dim(strings.Repeat("─", 60)))
+	s.Println(s.Dim("  Username  ") + s.Bold(s.White("admin")))
+	s.Println(s.Dim("  Password  ") + s.White("taken from CYBERSTRIKE_ADMIN_PASSWORD"))
+	s.BlankLine()
+}

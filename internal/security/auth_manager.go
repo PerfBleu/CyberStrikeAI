@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"errors"
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +14,9 @@ import (
 
 	"github.com/google/uuid"
 )
+
+// EnvAdminPassword 首次初始化内置 admin 时使用的密码。未设置则随机生成并只打印一次。
+const EnvAdminPassword = "CYBERSTRIKE_ADMIN_PASSWORD"
 
 // Predefined errors for authentication operations.
 var (
@@ -74,7 +79,7 @@ func (a *AuthManager) AttachRBACStore(db *database.DB) (generatedAdminPassword s
 
 	adminPasswordHash := ""
 	if needsAdminPassword {
-		generatedAdminPassword, err = GenerateStrongPassword(24)
+		generatedAdminPassword, err = initialAdminPassword()
 		if err != nil {
 			return "", err
 		}
@@ -92,6 +97,17 @@ func (a *AuthManager) AttachRBACStore(db *database.DB) (generatedAdminPassword s
 	a.db = db
 	a.mu.Unlock()
 	return generatedAdminPassword, nil
+}
+
+func initialAdminPassword() (string, error) {
+	configured := strings.TrimSpace(os.Getenv(EnvAdminPassword))
+	if configured == "" {
+		return GenerateStrongPassword(24)
+	}
+	if len(configured) < 8 {
+		return "", fmt.Errorf("%s must be at least 8 characters", EnvAdminPassword)
+	}
+	return configured, nil
 }
 
 // Authenticate validates the password and creates a new session.
