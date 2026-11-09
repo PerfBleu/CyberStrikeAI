@@ -5,6 +5,7 @@ services:
       args:
         GOPROXY: https://goproxy.cn,direct
         GOSUMDB: sum.golang.google.cn
+        PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
     image: cyberstrike-ai:local
     container_name: cyberstrike-ai
     restart: unless-stopped

@@ -20,10 +20,22 @@ RUN go build -trimpath -ldflags="-s -w" -o /out/cyberstrike-ai ./cmd/server
 
 FROM debian:bookworm-slim
 
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl libsqlite3-0 \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates curl libsqlite3-0 \
+        python3 python3-venv python3-pip \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /opt/cyberstrike /data
+
+COPY requirements.txt /tmp/requirements.txt
+RUN python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip -i "${PIP_INDEX_URL}" \
+    && /opt/venv/bin/pip install --no-cache-dir -i "${PIP_INDEX_URL}" -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
+
+ENV PATH="/opt/venv/bin:${PATH}"
 
 WORKDIR /opt/cyberstrike
 
