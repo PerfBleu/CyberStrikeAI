@@ -290,6 +290,43 @@ func TestChatUploadsListIncludesAuthorizedProjectWorkspaceFiles(t *testing.T) {
 	}
 }
 
+func TestChatUploadsListFollowsSymlinkedRoot(t *testing.T) {
+	withTempWorkingDir(t)
+	db, user := setupConversationRBACTest(t)
+	real := t.TempDir()
+	conversation := "conv-upload"
+	dir := filepath.Join(real, "2026-11-10", conversation)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "note.json"), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, "chat_uploads"); err != nil {
+		t.Fatal(err)
+	}
+
+	h := NewChatUploadsHandler(zap.NewNop(), db)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = httptest.NewRequest(http.MethodGet, "/api/chat-uploads?source=upload&pageSize=all&conversation="+conversation, nil)
+	c.Set(security.ContextSessionKey, security.Session{UserID: user.ID, Scope: database.RBACScopeAll})
+	h.List(c)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", w.Code, w.Body.String())
+	}
+	var response struct {
+		Files []ChatUploadFileItem `json:"files"`
+		Total int                  `json:"total"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+		t.Fatal(err)
+	}
+	if response.Total != 1 || len(response.Files) != 1 || response.Files[0].RelativePath != "2026-11-10/conv-upload/note.json" {
+		t.Fatalf("files = %#v total=%d", response.Files, response.Total)
+	}
+}
+
 func TestPrepareMultiAgentSessionRejectsForeignConversation(t *testing.T) {
 	db, user := setupConversationRBACTest(t)
 	hidden, _ := db.CreateConversation("hidden", database.ConversationCreateMeta{})

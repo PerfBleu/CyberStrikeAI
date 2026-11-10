@@ -169,6 +169,23 @@ func (h *ChatUploadsHandler) absRoot() (string, error) {
 	return filepath.Abs(filepath.Join(cwd, chatUploadsRootDirName))
 }
 
+// chatUploadsWalkRoot 返回可以遍历的上传目录。容器里这个目录是指向数据卷的符号链接，
+// WalkDir 不会进入符号链接，直接遍历会把已经上传的文件列成空列表。
+func (h *ChatUploadsHandler) chatUploadsWalkRoot() (string, error) {
+	root, err := h.absRoot()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(root, 0755); err != nil {
+		return "", err
+	}
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", err
+	}
+	return resolved, nil
+}
+
 func (h *ChatUploadsHandler) absReductionRoot() (string, error) {
 	if h.db != nil {
 		if base := strings.TrimSpace(h.db.AgentReductionBaseDir()); base != "" {
@@ -321,12 +338,8 @@ func (h *ChatUploadsHandler) projectName(projectID string, cache map[string]stri
 }
 
 func (h *ChatUploadsHandler) collectFiles(c *gin.Context, conversationFilter, projectFilter string) ([]ChatUploadFileItem, []string, error) {
-	root, err := h.absRoot()
+	root, err := h.chatUploadsWalkRoot()
 	if err != nil {
-		return nil, nil, err
-	}
-	// 保证根目录存在，否则「按文件夹」浏览时无法 mkdir，且首次列表为空时界面无路径工具栏
-	if err := os.MkdirAll(root, 0755); err != nil {
 		return nil, nil, err
 	}
 	var files []ChatUploadFileItem
