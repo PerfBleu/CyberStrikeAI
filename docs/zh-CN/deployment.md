@@ -85,6 +85,35 @@ go build -o cyberstrike-ai ./cmd/server
 - `agents/`
 - `config.yaml`
 
+## Docker / Compose
+
+仓库根目录提供 `Dockerfile` 与 `docker-compose.yaml`。`tools/` 下的 YAML **只是工具配方**，默认可通过构建参数把常见命令打进镜像。
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+运行时基础镜像默认为 **Debian 13（trixie）**；构建参数 `DEBIAN_SUITE` 可改（如 `bookworm`）。Debian 软件源使用[清华镜像](https://mirrors.tuna.tsinghua.edu.cn/help/debian/)。
+
+默认 `INSTALL_SECURITY_TOOLS=1` 时**仅**通过 **apt / pip / go install** 安装（不下载 GitHub Release、不装 Ruby gem）：
+
+- **Debian 包**：`nmap`、`masscan`、`nikto`、`hydra`、`sqlmap` 等 → `docker/apt-security-packages.txt`
+- **`go install`**：`subfinder`、`httpx`、`ffuf`、`gobuster`、`nuclei`（固定较旧 tag 以兼容 Go 1.25）等 → `docker/go-tools.txt`
+- **PyPI**（`/opt/venv`）：`dirsearch`、`wafw00f` 等 → `docker/requirements-security-tools.txt`（另加根目录 `requirements.txt` 里的 MCP / impacket 等）
+
+`tools/` 里其余配方（`feroxbuster`、`rustscan`、`radare2`、`trivy` 等）需自行在宿主机安装并挂载 PATH，或往上述三个列表里追加**仍能用 apt/pip/go 装上的**条目。
+
+仍**不会**默认打入镜像的示例：Metasploit、Ghidra、ZAP、无 Debian/PyPI/Go 发行版的纯二进制工具。
+
+构建瘦镜像（仅应用 + 基础 Python，不含扫描器）：
+
+```bash
+INSTALL_SECURITY_TOOLS=0 docker compose build
+```
+
+数据与配置持久化在卷 `cyberstrike-data`（容器内 `/data`）。Web 默认 `8080`，HTTP MCP `8081`。
+
 ## HTTPS
 
 本地测试可以使用自签：

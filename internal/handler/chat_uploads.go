@@ -342,6 +342,10 @@ func (h *ChatUploadsHandler) collectFiles(c *gin.Context, conversationFilter, pr
 	if err != nil {
 		return nil, nil, err
 	}
+	logicalRoot, err := h.absRoot()
+	if err != nil {
+		return nil, nil, err
+	}
 	var files []ChatUploadFileItem
 	var folders []string
 	projectCache := make(map[string]string)
@@ -386,7 +390,7 @@ func (h *ChatUploadsHandler) collectFiles(c *gin.Context, conversationFilter, pr
 		if projectFilter != "" && projectID != projectFilter {
 			return nil
 		}
-		absPath, _ := filepath.Abs(path)
+		absPath := filepath.Join(logicalRoot, filepath.FromSlash(relSlash))
 		files = append(files, ChatUploadFileItem{
 			RelativePath:      relSlash,
 			AbsolutePath:      absPath,
@@ -1167,6 +1171,36 @@ func (h *ChatUploadsHandler) Delete(c *gin.Context) {
 	var body chatUploadPathBody
 	if err := c.ShouldBindJSON(&body); err != nil || strings.TrimSpace(body.Path) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
+		return
+	}
+	if strings.HasPrefix(strings.TrimSpace(body.Path), workspaceVirtualPrefix) {
+		if !h.workspaceVirtualPathAllowed(c, body.Path) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "无权访问该资源"})
+			return
+		}
+		abs, err := h.resolveWorkspaceVirtualPath(body.Path)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		st, err := os.Stat(abs)
+		if err != nil {
+			if os.IsNotExist(err) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if st.IsDir() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "不能删除工作目录"})
+			return
+		}
+		if err := os.Remove(abs); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"ok": true})
 		return
 	}
 	if !h.pathAllowed(c, body.Path) {

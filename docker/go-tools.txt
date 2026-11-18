@@ -1,0 +1,8 @@
+# go install（构建阶段编译；失败项会跳过，不阻断镜像）
+github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+github.com/projectdiscovery/httpx/cmd/httpx@latest
+github.com/ffuf/ffuf/v2@latest
+github.com/OJ/gobuster/v3@latest
+github.com/tomnomnom/waybackurls@latest
+github.com/lc/gau/v2/cmd/gau@latest
+github.com/projectdiscovery/nuclei/v3/cmd/nuclei@v3.9.15

@@ -3,9 +3,12 @@ services:
     build:
       context: .
       args:
+        DEBIAN_SUITE: ${DEBIAN_SUITE:-trixie}
         GOPROXY: https://goproxy.cn,direct
         GOSUMDB: sum.golang.google.cn
         PIP_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        # 设为 0 可构建仅含应用+Python 的瘦镜像（不含 nmap/nuclei 等）
+        INSTALL_SECURITY_TOOLS: ${INSTALL_SECURITY_TOOLS:-1}
     image: cyberstrike-ai:local
     container_name: cyberstrike-ai
     restart: unless-stopped

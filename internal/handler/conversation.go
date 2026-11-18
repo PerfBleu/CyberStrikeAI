@@ -62,6 +62,7 @@ func NewConversationHandler(db *database.DB, logger *zap.Logger) *ConversationHa
 
 // CreateConversationRequest 创建对话请求
 type CreateConversationRequest struct {
+	ID        string `json:"id,omitempty"`
 	Title     string `json:"title"`
 	ProjectID string `json:"projectId,omitempty"`
 }
@@ -88,6 +89,40 @@ func (h *ConversationHandler) CreateConversation(c *gin.Context) {
 	meta.ProjectID = strings.TrimSpace(req.ProjectID)
 	if !h.conversationProjectAllowed(c, meta.ProjectID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "无权访问目标项目"})
+		return
+	}
+	if id := strings.TrimSpace(req.ID); id != "" {
+		if !validExternalConversationID(id) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid conversation id"})
+			return
+		}
+		if conv, err := h.db.GetConversation(id); err == nil {
+			session, ok := security.CurrentSession(c)
+			if ok && session.Scope != database.RBACScopeAll && !h.db.UserCanAccessResource(session.UserID, session.Scope, "conversation", id) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "无权访问该对话"})
+				return
+			}
+			c.JSON(http.StatusOK, conv)
+			return
+		} else if !strings.Contains(err.Error(), "对话不存在") {
+			h.logger.Error("查询对话失败", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		conv, err := h.db.CreateConversationWithID(id, title, meta)
+		if err != nil {
+			h.logger.Error("创建对话失败", zap.Error(err))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if session, ok := security.CurrentSession(c); ok {
+			_ = h.db.SetResourceOwner("conversation", conv.ID, session.UserID)
+			_ = h.db.AssignResourceToUser(session.UserID, "conversation", conv.ID)
+			if conv.ProjectID != "" {
+				_ = h.db.AssignResourceToUser(session.UserID, "project", conv.ProjectID)
+			}
+		}
+		c.JSON(http.StatusOK, conv)
 		return
 	}
 	conv, err := h.db.CreateConversation(title, meta)
@@ -129,6 +164,20 @@ func (h *ConversationHandler) SetConversationProject(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "projectId": projectID})
+}
+
+func validExternalConversationID(id string) bool {
+	if id == "" || len(id) > 128 {
+		return false
+	}
+	for _, r := range id {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func (h *ConversationHandler) conversationProjectAllowed(c *gin.Context, projectID string) bool {

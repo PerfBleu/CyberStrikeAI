@@ -1,0 +1,23 @@
+# Debian 软件源可直接安装（与 tools/*.yaml 部分对齐）
+nmap
+masscan
+nikto
+hydra
+sqlmap
+john
+hashcat
+binwalk
+foremost
+steghide
+gdb
+arp-scan
+nbtscan
+dnsenum
+fierce
+libimage-exiftool-perl
+bind9-dnsutils
+whois
+netcat-openbsd
+smbclient
+xxd
+binutils

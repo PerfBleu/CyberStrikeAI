@@ -1,0 +1,6 @@
+# 体积适中的 PyPI CLI（其余见根目录 requirements.txt）
+dirsearch
+wafw00f
+jwt-tool
+smbmap
+enum4linux-ng

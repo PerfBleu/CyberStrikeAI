@@ -1,0 +1,14 @@
+# 供已具备 ca-certificates 的环境使用 DEB822；Docker 构建请走 setup-debian-tuna-apt.sh（http sources.list）
+# 默认套件 trixie（Debian 13）；可设环境变量 DEBIAN_SUITE 覆盖
+
+Types: deb
+URIs: http://mirrors.tuna.tsinghua.edu.cn/debian
+Suites: trixie trixie-updates
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+
+Types: deb
+URIs: http://mirrors.tuna.tsinghua.edu.cn/debian-security
+Suites: trixie-security
+Components: main contrib non-free non-free-firmware
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg

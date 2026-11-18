@@ -449,37 +449,72 @@ const (
 	chatUploadsDirName = "chat_uploads" // 对话附件保存的根目录（相对当前工作目录）
 )
 
-// validateChatAttachmentServerPath 校验绝对路径落在工作目录 chat_uploads 下且为普通文件（防路径穿越）
+// validateChatAttachmentServerPath 校验绝对路径落在 chat_uploads 下且为普通文件（防路径穿越）。
+// 容器里 chat_uploads 是指向数据卷的符号链接，文件列表返回的是解析后的真实路径。
+// 会话工作目录 tmp/workspace 同样允许：@ 引用工作目录里的产物时，路径不在 chat_uploads 下。
 func validateChatAttachmentServerPath(abs string) (string, error) {
 	p := strings.TrimSpace(abs)
 	if p == "" {
 		return "", fmt.Errorf("empty path")
 	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("获取当前工作目录失败: %w", err)
-	}
-	root := filepath.Join(cwd, chatUploadsDirName)
-	rootAbs, err := filepath.Abs(filepath.Clean(root))
-	if err != nil {
-		return "", err
-	}
 	pathAbs, err := filepath.Abs(filepath.Clean(p))
 	if err != nil {
 		return "", err
 	}
-	sep := string(filepath.Separator)
-	if pathAbs != rootAbs && !strings.HasPrefix(pathAbs, rootAbs+sep) {
+	candidates := []string{pathAbs}
+	if resolved, err := filepath.EvalSymlinks(pathAbs); err == nil && resolved != "" {
+		candidates = append(candidates, resolved)
+	}
+	roots := append(attachmentRoots(chatUploadsDirName), attachmentRoots(filepath.Join("tmp", "workspace"))...)
+	chosen := ""
+	for _, candidate := range candidates {
+		for _, root := range roots {
+			if pathWithinRoot(root, candidate) {
+				chosen = candidate
+				break
+			}
+		}
+		if chosen != "" {
+			break
+		}
+	}
+	if chosen == "" {
 		return "", fmt.Errorf("path outside chat_uploads")
 	}
-	st, err := os.Stat(pathAbs)
+	st, err := os.Stat(chosen)
 	if err != nil {
 		return "", err
 	}
-	if st.IsDir() {
+	if !st.Mode().IsRegular() {
 		return "", fmt.Errorf("not a regular file")
 	}
-	return pathAbs, nil
+	return chosen, nil
+}
+
+func attachmentRoots(rel string) []string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil
+	}
+	root, err := filepath.Abs(filepath.Join(cwd, rel))
+	if err != nil {
+		return nil
+	}
+	out := []string{root}
+	if resolved, err := filepath.EvalSymlinks(root); err == nil && resolved != "" && resolved != root {
+		out = append(out, resolved)
+	}
+	return out
+}
+
+func pathWithinRoot(root, candidate string) bool {
+	root = filepath.Clean(root)
+	candidate = filepath.Clean(candidate)
+	rel, err := filepath.Rel(root, candidate)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	return true
 }
 
 // avoidChatUploadDestCollision 若 path 已存在则生成带时间戳+随机后缀的新文件名（与上传接口命名风格一致）

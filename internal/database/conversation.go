@@ -49,9 +49,24 @@ func (db *DB) CreateConversation(title string, meta ConversationCreateMeta) (*Co
 	return db.CreateConversationWithWebshell("", title, meta)
 }
 
+// CreateConversationWithID 用调用方指定的 id 创建对话，便于外部会话 id 与这里保持一致。
+func (db *DB) CreateConversationWithID(id, title string, meta ConversationCreateMeta) (*Conversation, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, fmt.Errorf("对话 id 为空")
+	}
+	return db.insertConversation(id, "", title, meta)
+}
+
 // CreateConversationWithWebshell 创建新对话，可选绑定 WebShell 连接 ID（为空则普通对话）
 func (db *DB) CreateConversationWithWebshell(webshellConnectionID, title string, meta ConversationCreateMeta) (*Conversation, error) {
-	id := uuid.New().String()
+	return db.insertConversation("", webshellConnectionID, title, meta)
+}
+
+func (db *DB) insertConversation(id, webshellConnectionID, title string, meta ConversationCreateMeta) (*Conversation, error) {
+	if strings.TrimSpace(id) == "" {
+		id = uuid.New().String()
+	}
 	now := time.Now()
 
 	projectID := strings.TrimSpace(meta.ProjectID)
